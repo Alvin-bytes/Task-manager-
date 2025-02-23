@@ -14,7 +14,9 @@ export const tasks = pgTable("tasks", {
 export const insertTaskSchema = createInsertSchema(tasks)
   .omit({ id: true, completed: true })
   .extend({
-    dueDate: z.string().datetime(),
+    dueDate: z.string().refine((date) => !isNaN(Date.parse(date)), {
+      message: "Please enter a valid date and time",
+    }),
   });
 
 export type InsertTask = z.infer<typeof insertTaskSchema>;

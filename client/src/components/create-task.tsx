@@ -13,22 +13,36 @@ interface Props {
   onSuccess?: () => void;
 }
 
+function formatDateForInput(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
+}
+
 export function CreateTask({ onSuccess }: Props) {
   const { toast } = useToast();
-  
+
   const form = useForm<InsertTask>({
     resolver: zodResolver(insertTaskSchema),
     defaultValues: {
       title: "",
       description: "",
-      dueDate: new Date().toISOString(),
+      dueDate: formatDateForInput(new Date()),
       reminderSet: false,
     },
   });
 
   const mutation = useMutation({
     mutationFn: async (data: InsertTask) => {
-      const res = await apiRequest("POST", "/api/tasks", data);
+      // Ensure the date is in ISO format before sending
+      const formattedData = {
+        ...data,
+        dueDate: new Date(data.dueDate).toISOString(),
+      };
+      const res = await apiRequest("POST", "/api/tasks", formattedData);
       return res.json();
     },
     onSuccess: () => {
@@ -66,7 +80,11 @@ export function CreateTask({ onSuccess }: Props) {
             <FormItem>
               <FormLabel>Description</FormLabel>
               <FormControl>
-                <Textarea placeholder="Enter task description" {...field} />
+                <Textarea 
+                  placeholder="Enter task description" 
+                  {...field} 
+                  value={field.value || ''} 
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -80,7 +98,13 @@ export function CreateTask({ onSuccess }: Props) {
             <FormItem>
               <FormLabel>Due Date</FormLabel>
               <FormControl>
-                <Input type="datetime-local" {...field} />
+                <Input 
+                  type="datetime-local" 
+                  {...field}
+                  onChange={(e) => {
+                    field.onChange(e.target.value);
+                  }}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
